@@ -1,0 +1,135 @@
+//
+// Set Chat Message
+//
+
+function set_chat_msg()
+{
+    if(typeof XMLHttpRequest != "undefined")
+    {
+        oxmlHttpSend = new XMLHttpRequest();
+    }
+    else if (window.ActiveXObject)
+    {
+       oxmlHttpSend = new ActiveXObject("Microsoft.XMLHttp");
+    }
+    if(oxmlHttpSend == null)
+    {
+       alert("Browser does not support XML Http Request");
+       return;
+    }
+    
+    var url = "chat_send_ajax.php";
+    var strname="noname";
+    var strmsg="";
+    if (document.getElementById("txtname") != null)
+    {
+        strname = document.getElementById("txtname").value;
+        document.getElementById("txtname").readOnly=true;
+    }
+    if (document.getElementById("txtmsg") != null)
+    {
+        strmsg = document.getElementById("txtmsg").value;
+        document.getElementById("txtmsg").value = "";
+    }
+    
+    url += "?name=" + strname + "&msg=" + strmsg;
+    oxmlHttpSend.open("GET",url,true);
+    oxmlHttpSend.send(null);
+}
+//
+require_once('dbconnect.php');
+
+db_connect();
+
+$msg = $_GET["msg"];
+$dt = date("Y-m-d H:i:s");
+$user = $_GET["name"];
+
+$sql="INSERT INTO chat(USERNAME,CHATDATE,MSG) " .
+      "values(" . quote($user) . "," . 
+      quote($dt) . "," . quote($msg) . ");";
+
+      echo $sql;
+
+$result = mysql_query($sql);
+if(!$result)
+{
+    throw new Exception('Query failed: ' . mysql_error());
+    exit();
+}
+
+//
+
+var t = setInterval(function(){get_chat_msg()},5000);
+//
+//
+// General Ajax Call
+//
+      
+var oxmlHttp;
+var oxmlHttpSend;
+      
+function get_chat_msg()
+{
+    if(typeof XMLHttpRequest != "undefined")
+    {
+        oxmlHttp = new XMLHttpRequest();
+    }
+    else if (window.ActiveXObject)
+    {
+       oxmlHttp = new ActiveXObject("Microsoft.XMLHttp");
+    }
+    if(oxmlHttp == null)
+    {
+        alert("Browser does not support XML Http Request");
+       return;
+    }
+    
+    oxmlHttp.onreadystatechange = get_chat_msg_result;
+    oxmlHttp.open("GET","chat_recv_ajax.php",true);
+    oxmlHttp.send(null);
+}
+//
+require_once('dbconnect.php');
+
+db_connect();
+
+$sql = "SELECT *, date_format(chatdate,'%d-%m-%Y %r') 
+as cdt from chat order by ID desc limit 200";
+$sql = "SELECT * FROM (" . $sql . ") as ch order by ID";
+$result = mysql_query($sql) or die('Query failed: ' . mysql_error());
+
+// Update Row Information
+$msg="";
+while ($line = mysql_fetch_array($result, MYSQL_ASSOC))
+{
+   $msg = $msg . "" .
+        "" .
+        "";
+}
+$msg=$msg . "<table style="color: blue; font-family: verdana, arial; " . 
+  "font-size: 10pt;" border="0">
+  <tbody><tr><td>" . $line["cdt"] . 
+  " </td><td>" . $line["username"] . 
+  ": </td><td>" . $line["msg"] . 
+  "</td></tr></tbody></table>";
+
+echo $msg;
+
+//
+
+function get_chat_msg_result(t)
+{
+    if(oxmlHttp.readyState==4 || oxmlHttp.readyState=="complete")
+    {
+        if (document.getElementById("DIV_CHAT") != null)
+        {
+            document.getElementById("DIV_CHAT").innerHTML =  oxmlHttp.responseText;
+            oxmlHttp = null;
+        }
+        var scrollDiv = document.getElementById("DIV_CHAT");
+        scrollDiv.scrollTop = scrollDiv.scrollHeight;
+    }
+}
+
+//
